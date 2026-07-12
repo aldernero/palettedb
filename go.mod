@@ -4,14 +4,15 @@ go 1.26.1
 
 require (
 	fyne.io/fyne/v2 v2.7.3
-	github.com/aldernero/gaul v0.0.0-20260525175513-d9b5c701af41
+	github.com/aldernero/gaul v0.0.0-20260712142430-f2050242ce3d
+	golang.org/x/image v0.44.0
 	modernc.org/sqlite v1.50.1
 )
 
 require (
-	codeberg.org/go-latex/latex v0.2.0 // indirect
-	codeberg.org/go-pdf/fpdf v0.11.1 // indirect
-	fyne.io/systray v1.12.0 // indirect
+	codeberg.org/go-latex/latex v0.3.0 // indirect
+	codeberg.org/go-pdf/fpdf v0.12.0 // indirect
+	fyne.io/systray v1.12.1 // indirect
 	github.com/BurntSushi/freetype-go v0.0.0-20160129220410-b763ddbfe298 // indirect
 	github.com/BurntSushi/graphics-go v0.0.0-20160129215708-b43f31a4a966 // indirect
 	github.com/BurntSushi/toml v1.6.0 // indirect
@@ -20,13 +21,13 @@ require (
 	github.com/ByteArena/poly2tri-go v0.0.0-20170716161910-d102ad91854f // indirect
 	github.com/Kagami/go-avif v0.1.0 // indirect
 	github.com/aldernero/interp v0.0.0-20231114035812-9ab0a3e37bf6 // indirect
-	github.com/andybalholm/brotli v1.2.1 // indirect
+	github.com/andybalholm/brotli v1.2.2 // indirect
 	github.com/benoitkugler/textlayout v0.3.2 // indirect
 	github.com/benoitkugler/textprocessing v0.0.6 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fredbi/uri v1.1.1 // indirect
-	github.com/fsnotify/fsnotify v1.9.0 // indirect
+	github.com/fsnotify/fsnotify v1.10.1 // indirect
 	github.com/fyne-io/gl-js v0.2.0 // indirect
 	github.com/fyne-io/glfw-js v0.3.0 // indirect
 	github.com/fyne-io/image v0.1.1 // indirect
@@ -49,7 +50,7 @@ require (
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
 	github.com/nicksnyder/go-i18n/v2 v2.6.1 // indirect
-	github.com/peterhellberg/gfx v0.0.0-20250602150231-2e41f5fad310 // indirect
+	github.com/peterhellberg/gfx v0.0.0-20260528221839-3f985a9df2a8 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rymdport/portal v0.4.2 // indirect
@@ -57,16 +58,15 @@ require (
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef // indirect
 	github.com/srwiley/scanx v0.0.0-20190309010443-e94503791388 // indirect
 	github.com/stretchr/testify v1.11.1 // indirect
-	github.com/tdewolff/canvas v0.0.0-20260406091912-5d4f7059846e // indirect
-	github.com/tdewolff/font v0.0.0-20260424075104-b5eeb1e23189 // indirect
+	github.com/tdewolff/canvas v0.0.0-20260708151538-b3beae08c578 // indirect
+	github.com/tdewolff/font v0.0.0-20260527091451-1663e68cb8a4 // indirect
 	github.com/tdewolff/minify/v2 v2.24.13 // indirect
-	github.com/tdewolff/parse/v2 v2.8.12 // indirect
+	github.com/tdewolff/parse/v2 v2.8.13 // indirect
 	github.com/wcharczuk/go-chart/v2 v2.1.2 // indirect
 	github.com/yuin/goldmark v1.8.2 // indirect
-	golang.org/x/image v0.39.0 // indirect
-	golang.org/x/net v0.53.0 // indirect
-	golang.org/x/sys v0.43.0 // indirect
-	golang.org/x/text v0.36.0 // indirect
+	golang.org/x/net v0.57.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/text v0.40.0 // indirect
 	gonum.org/v1/plot v0.17.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	modernc.org/knuth v0.5.5 // indirect

@@ -55,9 +55,9 @@ func TestSaveLoadSine(t *testing.T) {
 
 func TestSaveLoadDiscrete(t *testing.T) {
 	d := openTestDB(t)
-	stops := []color.Color{
-		color.RGBA64{R: 65535, G: 0, B: 0, A: 65535},     // pure red
-		color.RGBA64{R: 0, G: 0, B: 65535, A: 65535},     // pure blue
+	stops := []ColorStop{
+		{Color: color.RGBA64{R: 65535, G: 0, B: 0, A: 65535}, Pos: 0}, // pure red
+		{Color: color.RGBA64{R: 0, G: 0, B: 65535, A: 65535}, Pos: 1}, // pure blue
 	}
 	id, err := d.SaveDiscrete("test-discrete", "red to blue", stops)
 	if err != nil {
@@ -67,8 +67,8 @@ func TestSaveLoadDiscrete(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadDiscrete: %v", err)
 	}
-	if len(got.Colors) != 2 {
-		t.Fatalf("expected 2 colors, got %d", len(got.Colors))
+	if len(got.Colors()) != 2 {
+		t.Fatalf("expected 2 colors, got %d", len(got.Colors()))
 	}
 	g := got.Gradient()
 	r0, g0, b0, _ := g.ColorAt(0).RGBA()
@@ -78,6 +78,65 @@ func TestSaveLoadDiscrete(t *testing.T) {
 	r1, g1, b1, _ := g.ColorAt(1).RGBA()
 	if r1 > 5000 || g1 > 5000 || b1 < 60000 {
 		t.Errorf("ColorAt(1) should be blue, got R=%d G=%d B=%d", r1, g1, b1)
+	}
+}
+
+func TestSaveLoadDiscretePositions(t *testing.T) {
+	d := openTestDB(t)
+	stops := []ColorStop{
+		{Color: color.RGBA64{R: 65535, A: 65535}, Pos: 0},
+		{Color: color.RGBA64{G: 65535, A: 65535}, Pos: 0.25},
+		{Color: color.RGBA64{B: 65535, A: 65535}, Pos: 1},
+	}
+	id, err := d.SaveDiscrete("test-pos", "uneven", stops)
+	if err != nil {
+		t.Fatalf("SaveDiscrete: %v", err)
+	}
+	got, err := d.LoadDiscrete(id)
+	if err != nil {
+		t.Fatalf("LoadDiscrete: %v", err)
+	}
+	want := []float64{0, 0.25, 1}
+	ps := got.Positions()
+	if len(ps) != len(want) {
+		t.Fatalf("expected %d positions, got %d", len(want), len(ps))
+	}
+	for i := range want {
+		if math.Abs(ps[i]-want[i]) > 1e-9 {
+			t.Errorf("position %d: want %v got %v", i, want[i], ps[i])
+		}
+	}
+}
+
+// TestLegacyPositionBackfill simulates a pre-migration row (NULL pos) and checks
+// that LoadDiscrete backfills evenly spaced positions.
+func TestLegacyPositionBackfill(t *testing.T) {
+	d := openTestDB(t)
+	res, err := d.Exec(`INSERT INTO directory(name, type, description) VALUES ('legacy','discrete','')`)
+	if err != nil {
+		t.Fatalf("insert directory: %v", err)
+	}
+	id, _ := res.LastInsertId()
+	if _, err := d.Exec(`INSERT INTO discrete_palettes(id) VALUES (?)`, id); err != nil {
+		t.Fatalf("insert palette: %v", err)
+	}
+	// Insert three stops with NULL pos (pos column omitted).
+	for i := 0; i < 3; i++ {
+		if _, err := d.Exec(`INSERT INTO discrete_colors(palette_id, position, r, g, b) VALUES (?,?,?,?,?)`,
+			id, i, 0.1*float64(i), 0.2, 0.3); err != nil {
+			t.Fatalf("insert color: %v", err)
+		}
+	}
+	got, err := d.LoadDiscrete(id)
+	if err != nil {
+		t.Fatalf("LoadDiscrete: %v", err)
+	}
+	want := []float64{0, 0.5, 1}
+	ps := got.Positions()
+	for i := range want {
+		if math.Abs(ps[i]-want[i]) > 1e-9 {
+			t.Errorf("backfilled position %d: want %v got %v", i, want[i], ps[i])
+		}
 	}
 }
 

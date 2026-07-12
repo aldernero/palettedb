@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS discrete_colors (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     palette_id INTEGER NOT NULL REFERENCES discrete_palettes(id) ON DELETE CASCADE,
     position   INTEGER NOT NULL,
+    pos        REAL,
     r REAL NOT NULL, g REAL NOT NULL, b REAL NOT NULL,
     UNIQUE(palette_id, position)
 );
@@ -52,9 +53,16 @@ type DB struct {
 
 // migrate applies schema changes to existing databases (idempotent).
 func migrate(sqldb *sql.DB) error {
-	_, err := sqldb.Exec(`ALTER TABLE sine_palettes ADD COLUMN color_space TEXT NOT NULL DEFAULT 'RGB'`)
-	if err != nil && !strings.Contains(err.Error(), "duplicate column name") {
-		return err
+	stmts := []string{
+		`ALTER TABLE sine_palettes ADD COLUMN color_space TEXT NOT NULL DEFAULT 'RGB'`,
+		// Normalized stop position in [0,1]. Nullable: legacy rows have NULL and
+		// are treated as evenly spaced at load time.
+		`ALTER TABLE discrete_colors ADD COLUMN pos REAL`,
+	}
+	for _, s := range stmts {
+		if _, err := sqldb.Exec(s); err != nil && !strings.Contains(err.Error(), "duplicate column name") {
+			return err
+		}
 	}
 	return nil
 }

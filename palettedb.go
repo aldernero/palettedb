@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/aldernero/gaul"
+	"github.com/aldernero/palettedb/internal/builtins"
 	"github.com/aldernero/palettedb/internal/db"
 )
 
@@ -38,19 +39,66 @@ func (d *DB) Close() error {
 	return d.inner.Close()
 }
 
-// LoadSineByName loads a sine palette by name.
-// Returns an error if the name does not exist or the entry is not a sine palette.
+// LoadSineByName loads a sine palette by name, searching the user's saved
+// palettes first and then the built-in palettes. Returns an error if no sine
+// palette with that name exists in either.
 func (d *DB) LoadSineByName(name string) (gaul.SinePalette, error) {
-	entry, err := d.inner.GetByName(name)
-	if err != nil {
-		return gaul.SinePalette{}, fmt.Errorf("palette %q not found: %w", name, err)
+	if entry, err := d.inner.GetByName(name); err == nil && entry.Type == "sine" {
+		rec, err := d.inner.LoadSine(entry.ID)
+		if err != nil {
+			return gaul.SinePalette{}, err
+		}
+		return rec.Palette, nil
 	}
-	if entry.Type != "sine" {
-		return gaul.SinePalette{}, fmt.Errorf("palette %q has type %q, want sine", name, entry.Type)
+	if b, ok := builtins.ByName(name); ok {
+		if sp, ok := b.SinePalette(); ok {
+			return sp, nil
+		}
 	}
-	rec, err := d.inner.LoadSine(entry.ID)
-	if err != nil {
-		return gaul.SinePalette{}, err
+	return gaul.SinePalette{}, fmt.Errorf("sine palette %q not found", name)
+}
+
+// LoadDiscreteByName loads a discrete palette by name as a gaul.Gradient,
+// searching the user's saved palettes first and then the built-in palettes.
+// Returns an error if no discrete palette with that name exists in either.
+func (d *DB) LoadDiscreteByName(name string) (gaul.Gradient, error) {
+	if entry, err := d.inner.GetByName(name); err == nil && entry.Type == "discrete" {
+		rec, err := d.inner.LoadDiscrete(entry.ID)
+		if err != nil {
+			return gaul.Gradient{}, err
+		}
+		return rec.Gradient(), nil
 	}
-	return rec.Palette, nil
+	if b, ok := builtins.ByName(name); ok && b.Kind == "discrete" {
+		return b.Gradient(), nil
+	}
+	return gaul.Gradient{}, fmt.Errorf("discrete palette %q not found", name)
+}
+
+// PaletteByName looks up a palette of either type by name (saved palettes first,
+// then built-ins) and returns it as a gaul.Palette along with its type
+// ("sine" or "discrete"). Use this when the caller does not know the type.
+func (d *DB) PaletteByName(name string) (gaul.Palette, string, error) {
+	if entry, err := d.inner.GetByName(name); err == nil {
+		switch entry.Type {
+		case "sine":
+			rec, err := d.inner.LoadSine(entry.ID)
+			if err != nil {
+				return nil, "", err
+			}
+			sp := rec.Palette
+			return &sp, "sine", nil
+		case "discrete":
+			rec, err := d.inner.LoadDiscrete(entry.ID)
+			if err != nil {
+				return nil, "", err
+			}
+			g := rec.Gradient()
+			return &g, "discrete", nil
+		}
+	}
+	if b, ok := builtins.ByName(name); ok {
+		return b.Palette(), b.Kind, nil
+	}
+	return nil, "", fmt.Errorf("palette %q not found", name)
 }

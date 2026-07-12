@@ -1,0 +1,16 @@
+version: "2"
+
+linters:
+  # Default set: errcheck, govet, ineffassign, staticcheck, unused.
+  exclusions:
+    presets:
+      # Ignore unchecked errors on the conventional cleanup/output calls
+      # (deferred Close/Flush, fmt.Fprint* to a buffered writer, etc.).
+      - std-error-handling
+    rules:
+      # Deferred rollback: the error is uninteresting (a no-op after commit).
+      - linters: [errcheck]
+        source: 'defer .*\.Rollback\(\)'
+      # Scan result in a test assertion.
+      - linters: [errcheck]
+        path: _test\.go

@@ -1,11 +1,13 @@
 package db
 
-// Entry is a row from the directory table.
+// Entry is a row from the directory table. BuiltIn is not persisted; it is set
+// by the UI for synthetic entries representing read-only built-in palettes.
 type Entry struct {
 	ID          int64
 	Name        string
 	Type        string // "sine" or "discrete"
 	Description string
+	BuiltIn     bool
 }
 
 // ListAll returns all directory entries ordered by name.
@@ -40,6 +42,13 @@ func (d *DB) GetByName(name string) (Entry, error) {
 	err := d.QueryRow(`SELECT id, name, type, description FROM directory WHERE name = ?`, name).
 		Scan(&e.ID, &e.Name, &e.Type, &e.Description)
 	return e, err
+}
+
+// Rename updates the name and description of a directory entry.
+func (d *DB) Rename(id int64, name, description string) error {
+	_, err := d.Exec(`UPDATE directory SET name = ?, description = ? WHERE id = ?`,
+		name, description, id)
+	return err
 }
 
 // Delete removes a directory entry and cascades to the associated subtype table.
