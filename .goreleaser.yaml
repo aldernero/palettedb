@@ -1,0 +1,64 @@
+# GoReleaser config for palettedb.
+# palettedb is a Fyne GUI app: it needs CGo and native GL/X11 libraries, so the
+# release targets linux/amd64 (which also runs on Wayland via XWayland). Other
+# platforms should build from source (`go install .../cmd/palettedb@latest`).
+version: 2
+
+project_name: palettedb
+
+builds:
+  - id: palettedb
+    main: ./cmd/palettedb
+    binary: palettedb
+    env:
+      - CGO_ENABLED=1
+      - GOWORK=off # build against go.mod versions, not the local go.work
+    goos:
+      - linux
+    goarch:
+      - amd64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X github.com/aldernero/palettedb/ui.appVersion={{ .Version }}
+
+archives:
+  - id: palettedb
+    formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - README.md
+      - LICENSE
+      # Attribution for the embedded third-party colormap data and icons.
+      - src: internal/builtins/THIRD_PARTY_NOTICES.md
+        dst: notices/builtin-palettes.md
+      - src: ui/resources/THIRD_PARTY_NOTICES.md
+        dst: notices/icons.md
+      - src: internal/builtins/LICENSE-*.txt
+        dst: notices/licenses
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "^ci:"
+      - "Merge pull request"
+
+release:
+  github:
+    owner: aldernero
+    name: palettedb
+  draft: false
+  prerelease: auto
+  name_template: "v{{ .Version }}"
+  footer: >-
+    Built for linux/amd64. On other platforms, install from source:
+    `go install github.com/aldernero/palettedb/cmd/palettedb@{{ .Tag }}`

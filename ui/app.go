@@ -25,7 +25,9 @@ import (
 var initialWindowSize = fyne.NewSize(1000, 760)
 
 const appID = "com.aldernero.palettedb"
-const appVersion = "0.1.0"
+
+// appVersion is overridden at release time via -ldflags -X (see .goreleaser.yaml).
+var appVersion = "dev"
 
 type docKind int
 
