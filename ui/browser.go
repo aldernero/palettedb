@@ -95,7 +95,8 @@ func NewBrowser(database *db.DB, window fyne.Window) *Browser {
 }
 
 func (b *Browser) newSectionList(itemsFn func() []browseItem, otherFn func() *widget.List) *widget.List {
-	l := widget.NewList(
+	var l *widget.List
+	l = widget.NewList(
 		func() int { return len(itemsFn()) },
 		func() fyne.CanvasObject {
 			r := newPaletteRow()
@@ -112,7 +113,9 @@ func (b *Browser) newSectionList(itemsFn func() []browseItem, otherFn func() *wi
 				return
 			}
 			item := items[id]
-			obj.(*paletteRow).update(item, b.paletteFor(item))
+			row := obj.(*paletteRow)
+			row.onTapped = func() { l.Select(id) }
+			row.update(item, b.paletteFor(item))
 		},
 	)
 	l.OnSelected = func(id widget.ListItemID) {
@@ -290,6 +293,7 @@ type paletteRow struct {
 	nameLbl     *widget.Label
 	typeImg     *canvas.Image
 	item        browseItem
+	onTapped    func()
 	onSecondary func(browseItem, *fyne.PointEvent)
 }
 
@@ -337,10 +341,22 @@ func (r *paletteRow) CreateRenderer() fyne.WidgetRenderer {
 	return widget.NewSimpleRenderer(container.NewBorder(nil, nil, left, nil, r.nameLbl))
 }
 
+// Tapped selects this row. Because the row is SecondaryTappable (for the
+// context menu), Fyne's tap dispatch targets it directly rather than the list's
+// internal tappable wrapper — so the row must select itself on a primary tap.
+func (r *paletteRow) Tapped(*fyne.PointEvent) {
+	if r.onTapped != nil {
+		r.onTapped()
+	}
+}
+
 func (r *paletteRow) TappedSecondary(ev *fyne.PointEvent) {
 	if r.onSecondary != nil {
 		r.onSecondary(r.item, ev)
 	}
 }
 
-var _ fyne.SecondaryTappable = (*paletteRow)(nil)
+var (
+	_ fyne.Tappable          = (*paletteRow)(nil)
+	_ fyne.SecondaryTappable = (*paletteRow)(nil)
+)
