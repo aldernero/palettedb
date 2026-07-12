@@ -21,7 +21,7 @@ colormaps ship built in.
 - **Familiar editing** — new palettes appear immediately as "Untitled" drafts
   with a `*` modified marker; save writes them to the database; right-click a
   palette to copy, rename, or delete it. Light / Dark / System theming.
-- **Library API** — fetch palettes by name from your own Go programs.
+- **Library API** — fetch palettes by name for your own Go programs.
 
 ## The two palette types
 
@@ -34,6 +34,9 @@ the gradient to move stops, or edit the color/position directly in the table.
 ![Discrete editor](docs/discrete.png)
 
 ### Sine palettes
+
+This is a procedural palette introduced by the amazing [Inigo Quilez](https://iquilezles.org/articles/palettes/).
+I use it all the time for generative art, especially shaders.
 
 A sine (cosine-gradient) palette is defined by four `RGB` coefficient vectors
 **A, B, C, D** where the color at position `t` is
