@@ -60,5 +60,16 @@ release:
   prerelease: auto
   name_template: "v{{ .Version }}"
   footer: >-
-    Built for linux/amd64. On other platforms, install from source:
+    ## Downloads
+
+    - **Linux** (amd64): `palettedb_{{ .Version }}_linux_amd64.tar.gz`
+
+    - **macOS**: `palettedb_{{ .Version }}_darwin_arm64.zip` (Apple Silicon) or
+    `palettedb_{{ .Version }}_darwin_amd64.zip` (Intel) — unzip and run
+    `PaletteDB.app`
+
+    - **Windows** (amd64): `palettedb_{{ .Version }}_windows_amd64.zip`
+
+    The macOS and Windows bundles are attached to this release shortly after it
+    is published. Or install from source on any platform:
     `go install github.com/aldernero/palettedb/cmd/palettedb@{{ .Tag }}`

@@ -9,7 +9,9 @@ permissions:
   contents: write
 
 jobs:
-  goreleaser:
+  # Linux is built and released by GoReleaser, which also creates the GitHub
+  # Release that the macOS/Windows jobs attach their bundles to.
+  linux:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -27,3 +29,79 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # macOS is a CGo/Fyne app, so it must be built on a real macOS runner (no
+  # cross-compiling). Build both Apple Silicon (arm64) and Intel (amd64) as
+  # .app bundles and attach them to the release created by the linux job.
+  macos:
+    needs: linux
+    strategy:
+      matrix:
+        include:
+          - runner: macos-14
+            arch: arm64
+          - runner: macos-13
+            arch: amd64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Install fyne packaging tool
+        run: |
+          go install fyne.io/tools/cmd/fyne@latest
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+      - name: Package .app and attach to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          export GOWORK=off
+          # fyne build reads ldflags from GOFLAGS (single space-free token), so
+          # inject the version with the -X=pkg=value form.
+          export GOFLAGS="-ldflags=-X=github.com/aldernero/palettedb/ui.appVersion=${VERSION}"
+          fyne package --os darwin --release --src ./cmd/palettedb \
+            --icon "$PWD/ui/resources/icon.png" --name PaletteDB \
+            --app-id com.aldernero.palettedb --app-version "${VERSION}"
+          APP="$(find . -maxdepth 3 -name 'PaletteDB.app' -type d | head -1)"
+          ZIP="palettedb_${VERSION}_darwin_${{ matrix.arch }}.zip"
+          ditto -c -k --keepParent "$APP" "$ZIP"
+          gh release upload "${GITHUB_REF_NAME}" "$ZIP" --clobber
+
+  # Windows likewise needs a native runner for CGo. Produce an .exe with the
+  # icon and version metadata embedded, zipped with the README and license.
+  windows:
+    needs: linux
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Install fyne packaging tool
+        shell: bash
+        run: |
+          go install fyne.io/tools/cmd/fyne@latest
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+      - name: Package .exe and attach to release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          export GOWORK=off
+          export GOFLAGS="-ldflags=-X=github.com/aldernero/palettedb/ui.appVersion=${VERSION}"
+          fyne package --os windows --release --src ./cmd/palettedb \
+            --icon "$PWD/ui/resources/icon.png" --name PaletteDB \
+            --app-id com.aldernero.palettedb --app-version "${VERSION}"
+          EXE="$(find . -name 'PaletteDB.exe' -type f | head -1)"
+          mkdir -p pkg
+          cp "$EXE" pkg/PaletteDB.exe
+          cp README.md LICENSE pkg/
+          ZIP="palettedb_${VERSION}_windows_amd64.zip"
+          7z a "$ZIP" ./pkg/*
+          gh release upload "${GITHUB_REF_NAME}" "$ZIP" --clobber
