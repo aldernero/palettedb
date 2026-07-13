@@ -4,14 +4,24 @@ on:
   push:
     tags:
       - "v*"
+  # Manual trigger to (re)build the macOS/Windows bundles for an existing
+  # release tag without re-running GoReleaser (which owns the linux artifact
+  # and the GitHub Release itself).
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag to (re)build platform bundles for (e.g. v0.1.1)"
+        required: true
 
 permissions:
   contents: write
 
 jobs:
   # Linux is built and released by GoReleaser, which also creates the GitHub
-  # Release that the macOS/Windows jobs attach their bundles to.
+  # Release that the macOS/Windows jobs attach their bundles to. Only on a real
+  # tag push -- on a manual dispatch the release already exists.
   linux:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -30,21 +40,18 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # macOS is a CGo/Fyne app, so it must be built on a real macOS runner (no
-  # cross-compiling). Build both Apple Silicon (arm64) and Intel (amd64) as
-  # .app bundles and attach them to the release created by the linux job.
+  # macOS is a CGo/Fyne app, so it must be built on a real macOS runner. Build a
+  # universal (arm64 + amd64) .app on the Apple Silicon runner -- its Xcode SDK
+  # is universal, so it can also emit the amd64 slice, and `lipo` merges them.
+  # This avoids GitHub's scarce/slow Intel runners entirely.
   macos:
     needs: linux
-    strategy:
-      matrix:
-        include:
-          - runner: macos-14
-            arch: arm64
-          - runner: macos-13
-            arch: amd64
-    runs-on: ${{ matrix.runner }}
+    if: always() && (github.event_name == 'workflow_dispatch' || needs.linux.result == 'success')
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref_name }}
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
@@ -52,32 +59,43 @@ jobs:
         run: |
           go install fyne.io/tools/cmd/fyne@latest
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
-      - name: Package .app and attach to release
+      - name: Build universal .app and attach to release
         env:
           GH_TOKEN: ${{ github.token }}
-          GOARCH: ${{ matrix.arch }}
         run: |
           set -euo pipefail
-          VERSION="${GITHUB_REF_NAME#v}"
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          VERSION="${TAG#v}"
           export GOWORK=off
-          # fyne build reads ldflags from GOFLAGS (single space-free token), so
-          # inject the version with the -X=pkg=value form.
-          export GOFLAGS="-ldflags=-X=github.com/aldernero/palettedb/ui.appVersion=${VERSION}"
-          fyne package --os darwin --release --src ./cmd/palettedb \
+          LD="-s -w -X=github.com/aldernero/palettedb/ui.appVersion=${VERSION}"
+          # Native arm64 slice, then cross-build the amd64 slice (the runner's
+          # SDK is universal), then fuse into one universal binary.
+          CGO_ENABLED=1 GOARCH=arm64 go build -trimpath -ldflags "$LD" -o pdb_arm64 ./cmd/palettedb
+          CGO_ENABLED=1 GOARCH=amd64 go build -trimpath -ldflags "$LD" -o pdb_amd64 ./cmd/palettedb
+          lipo -create -output pdb_universal pdb_arm64 pdb_amd64
+          lipo -info pdb_universal
+          # Wrap the prebuilt universal binary into PaletteDB.app (fyne does not
+          # rebuild on darwin when --exe is given, so the ldflags are preserved).
+          fyne package --os darwin --exe pdb_universal \
             --icon "$PWD/ui/resources/icon.png" --name PaletteDB \
             --app-id com.aldernero.palettedb --app-version "${VERSION}"
-          APP="$(find . -maxdepth 3 -name 'PaletteDB.app' -type d | head -1)"
-          ZIP="palettedb_${VERSION}_darwin_${{ matrix.arch }}.zip"
-          ditto -c -k --keepParent "$APP" "$ZIP"
-          gh release upload "${GITHUB_REF_NAME}" "$ZIP" --clobber
+          ZIP="palettedb_${VERSION}_darwin_universal.zip"
+          ditto -c -k --keepParent PaletteDB.app "$ZIP"
+          gh release upload "$TAG" "$ZIP" --clobber
+          # Drop any older arch-specific Mac asset from a previous run.
+          gh release delete-asset "$TAG" "palettedb_${VERSION}_darwin_arm64.zip" -y || true
+          gh release delete-asset "$TAG" "palettedb_${VERSION}_darwin_amd64.zip" -y || true
 
   # Windows likewise needs a native runner for CGo. Produce an .exe with the
   # icon and version metadata embedded, zipped with the README and license.
   windows:
     needs: linux
+    if: always() && (github.event_name == 'workflow_dispatch' || needs.linux.result == 'success')
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref_name }}
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
@@ -92,8 +110,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          VERSION="${GITHUB_REF_NAME#v}"
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          VERSION="${TAG#v}"
           export GOWORK=off
+          # fyne build reads ldflags from GOFLAGS (single space-free token), so
+          # inject the version with the -X=pkg=value form.
           export GOFLAGS="-ldflags=-X=github.com/aldernero/palettedb/ui.appVersion=${VERSION}"
           fyne package --os windows --release --src ./cmd/palettedb \
             --icon "$PWD/ui/resources/icon.png" --name PaletteDB \
@@ -104,4 +125,4 @@ jobs:
           cp README.md LICENSE pkg/
           ZIP="palettedb_${VERSION}_windows_amd64.zip"
           7z a "$ZIP" ./pkg/*
-          gh release upload "${GITHUB_REF_NAME}" "$ZIP" --clobber
+          gh release upload "$TAG" "$ZIP" --clobber

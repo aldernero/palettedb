@@ -64,9 +64,8 @@ release:
 
     - **Linux** (amd64): `palettedb_{{ .Version }}_linux_amd64.tar.gz`
 
-    - **macOS**: `palettedb_{{ .Version }}_darwin_arm64.zip` (Apple Silicon) or
-    `palettedb_{{ .Version }}_darwin_amd64.zip` (Intel) — unzip and run
-    `PaletteDB.app`
+    - **macOS** (universal, Apple Silicon + Intel):
+    `palettedb_{{ .Version }}_darwin_universal.zip` — unzip and run `PaletteDB.app`
 
     - **Windows** (amd64): `palettedb_{{ .Version }}_windows_amd64.zip`
 
