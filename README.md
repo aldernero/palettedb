@@ -9,18 +9,15 @@ colormaps ship built in.
 
 ## Features
 
-- **Two kinds of palette** — hand-placed **discrete** gradients and parametric
+- **Two kinds of palettes** — **discrete** gradients and parametric
   **sine** palettes (see below).
 - **Built-in colormaps** — viridis, plasma, inferno, magma, cividis, turbo,
   mako, rocket, flare, crest, vlag, icefire, and a couple of project sine
-  palettes — always available, read-only, and searchable by name.
+  palettes
 - **Live previews** — every palette shows a continuous gradient strip and rows
   of discrete swatches.
 - **Export** — write any palette to a GIMP palette (`.gpl`) or CSV with a
   configurable number of colors.
-- **Familiar editing** — new palettes appear immediately as "Untitled" drafts
-  with a `*` modified marker; save writes them to the database; right-click a
-  palette to copy, rename, or delete it. Light / Dark / System theming.
 - **Library API** — fetch palettes by name for your own Go programs.
 
 ## The two palette types
