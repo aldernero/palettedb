@@ -72,11 +72,13 @@ jobs:
           # SDK is universal), then fuse into one universal binary.
           CGO_ENABLED=1 GOARCH=arm64 go build -trimpath -ldflags "$LD" -o pdb_arm64 ./cmd/palettedb
           CGO_ENABLED=1 GOARCH=amd64 go build -trimpath -ldflags "$LD" -o pdb_amd64 ./cmd/palettedb
-          lipo -create -output pdb_universal pdb_arm64 pdb_amd64
-          lipo -info pdb_universal
+          # Name the fused binary `palettedb` -- fyne uses this basename for the
+          # executable inside the .app bundle (Contents/MacOS/palettedb).
+          lipo -create -output palettedb pdb_arm64 pdb_amd64
+          lipo -info palettedb
           # Wrap the prebuilt universal binary into PaletteDB.app (fyne does not
           # rebuild on darwin when --exe is given, so the ldflags are preserved).
-          fyne package --os darwin --exe pdb_universal \
+          fyne package --os darwin --exe palettedb \
             --icon "$PWD/ui/resources/icon.png" --name PaletteDB \
             --app-id com.aldernero.palettedb --app-version "${VERSION}"
           ZIP="palettedb_${VERSION}_darwin_universal.zip"
