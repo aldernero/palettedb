@@ -126,3 +126,22 @@ jobs:
           ZIP="palettedb_${VERSION}_windows_amd64.zip"
           7z a "$ZIP" ./pkg/*
           gh release upload "$TAG" "$ZIP" --clobber
+
+  # Regenerate checksums.txt over every distributed archive (GoReleaser only
+  # covers the linux tarball). Runs after the platform jobs so all zips exist.
+  checksums:
+    needs: [linux, macos, windows]
+    if: always() && needs.macos.result == 'success' && needs.windows.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checksum all release archives
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          mkdir dl && cd dl
+          gh release download "$TAG" --pattern '*.tar.gz' --pattern '*.zip'
+          sha256sum * > checksums.txt
+          cat checksums.txt
+          gh release upload "$TAG" checksums.txt --clobber
