@@ -2,6 +2,7 @@ package palettedb
 
 import (
 	"image/color"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -77,6 +78,56 @@ func TestByNameSearchesCustomAndBuiltin(t *testing.T) {
 	}
 	if _, err := d.LoadDiscreteByName("does-not-exist"); err == nil {
 		t.Error("expected error for missing name")
+	}
+}
+
+func TestListStoredPalettes(t *testing.T) {
+	d, err := Open(seed(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer d.Close()
+
+	entries, err := d.List()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 2 {
+		t.Fatalf("List returned %d entries, want 2", len(entries))
+	}
+	// ListAll orders by name: my-grad before my-sine.
+	if entries[0].Name != "my-grad" || entries[0].Type != "discrete" {
+		t.Errorf("entries[0] = %+v, want my-grad/discrete", entries[0])
+	}
+	if entries[1].Name != "my-sine" || entries[1].Type != "sine" {
+		t.Errorf("entries[1] = %+v, want my-sine/sine", entries[1])
+	}
+
+	sines, err := d.ListNames("sine")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(sines) != 1 || sines[0] != "my-sine" {
+		t.Errorf("ListNames(sine) = %v, want [my-sine]", sines)
+	}
+	discretes, err := d.ListNames("discrete")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(discretes) != 1 || discretes[0] != "my-grad" {
+		t.Errorf("ListNames(discrete) = %v, want [my-grad]", discretes)
+	}
+}
+
+func TestDefaultPath(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	p, err := DefaultPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := filepath.Join(os.Getenv("XDG_CONFIG_HOME"), "palettedb", "palettedb.db")
+	if p != want {
+		t.Errorf("DefaultPath() = %q, want %q", p, want)
 	}
 }
 

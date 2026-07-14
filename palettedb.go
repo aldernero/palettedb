@@ -39,6 +39,49 @@ func (d *DB) Close() error {
 	return d.inner.Close()
 }
 
+// DefaultPath returns the default database location used by OpenDefault
+// (~/.config/palettedb/palettedb.db, honoring XDG_CONFIG_HOME).
+func DefaultPath() (string, error) {
+	return db.DefaultPath()
+}
+
+// Entry describes a palette stored in the database.
+type Entry struct {
+	Name        string
+	Type        string // "sine" or "discrete"
+	Description string
+}
+
+// List returns all palettes stored in the database ordered by name.
+// Built-in palettes are not included.
+func (d *DB) List() ([]Entry, error) {
+	rows, err := d.inner.ListAll()
+	if err != nil {
+		return nil, err
+	}
+	entries := make([]Entry, 0, len(rows))
+	for _, r := range rows {
+		entries = append(entries, Entry{Name: r.Name, Type: r.Type, Description: r.Description})
+	}
+	return entries, nil
+}
+
+// ListNames returns the names of stored palettes of the given type
+// ("sine" or "discrete") ordered by name. Built-in palettes are not included.
+func (d *DB) ListNames(paletteType string) ([]string, error) {
+	entries, err := d.List()
+	if err != nil {
+		return nil, err
+	}
+	var names []string
+	for _, e := range entries {
+		if e.Type == paletteType {
+			names = append(names, e.Name)
+		}
+	}
+	return names, nil
+}
+
 // LoadSineByName loads a sine palette by name, searching the user's saved
 // palettes first and then the built-in palettes. Returns an error if no sine
 // palette with that name exists in either.

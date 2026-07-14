@@ -111,6 +111,16 @@ func OpenAt(path string) (*DB, error) {
 	return &DB{sqldb}, nil
 }
 
+// DefaultPath returns the database path used by Open
+// (~/.config/palettedb/palettedb.db, honoring XDG_CONFIG_HOME).
+func DefaultPath() (string, error) {
+	dir, err := configDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "palettedb.db"), nil
+}
+
 func configDir() (string, error) {
 	base := os.Getenv("XDG_CONFIG_HOME")
 	if base == "" {
