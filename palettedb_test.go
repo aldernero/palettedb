@@ -4,6 +4,7 @@ import (
 	"image/color"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"github.com/aldernero/gaul"
@@ -116,6 +117,22 @@ func TestListStoredPalettes(t *testing.T) {
 	}
 	if len(discretes) != 1 || discretes[0] != "my-grad" {
 		t.Errorf("ListNames(discrete) = %v, want [my-grad]", discretes)
+	}
+}
+
+func TestBuiltins(t *testing.T) {
+	discretes := BuiltinNames("discrete")
+	sines := BuiltinNames("sine")
+	if len(discretes) == 0 || len(sines) == 0 {
+		t.Fatalf("BuiltinNames returned %d discrete and %d sine names, want both non-empty",
+			len(discretes), len(sines))
+	}
+	if !slices.Contains(discretes, "viridis") {
+		t.Errorf("BuiltinNames(discrete) = %v, want it to contain viridis", discretes)
+	}
+	if len(Builtins()) != len(discretes)+len(sines) {
+		t.Errorf("Builtins() has %d entries, want %d (types other than sine/discrete?)",
+			len(Builtins()), len(discretes)+len(sines))
 	}
 }
 

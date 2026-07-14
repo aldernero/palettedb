@@ -82,6 +82,31 @@ func (d *DB) ListNames(paletteType string) ([]string, error) {
 	return names, nil
 }
 
+// Builtins returns the read-only palettes compiled into the library (discrete
+// colormaps such as viridis and turbo, plus sine palettes) ordered by name.
+// They resolve through the same LoadSineByName/LoadDiscreteByName/PaletteByName
+// lookups as stored palettes.
+func Builtins() []Entry {
+	all := builtins.All()
+	entries := make([]Entry, 0, len(all))
+	for _, b := range all {
+		entries = append(entries, Entry{Name: b.Name, Type: b.Kind, Description: b.Description})
+	}
+	return entries
+}
+
+// BuiltinNames returns the names of built-in palettes of the given type
+// ("sine" or "discrete") ordered by name.
+func BuiltinNames(paletteType string) []string {
+	var names []string
+	for _, e := range Builtins() {
+		if e.Type == paletteType {
+			names = append(names, e.Name)
+		}
+	}
+	return names
+}
+
 // LoadSineByName loads a sine palette by name, searching the user's saved
 // palettes first and then the built-in palettes. Returns an error if no sine
 // palette with that name exists in either.
