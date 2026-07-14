@@ -136,6 +136,26 @@ func TestBuiltins(t *testing.T) {
 	}
 }
 
+func TestBuiltinByNameWithoutDB(t *testing.T) {
+	g, err := BuiltinDiscreteByName("Viridis") // case-insensitive
+	if err != nil {
+		t.Fatalf("BuiltinDiscreteByName(Viridis): %v", err)
+	}
+	r, gr, b, _ := g.ColorAt(0).RGBA()
+	if to8(r) != 0x44 || to8(gr) != 0x01 || to8(b) != 0x54 {
+		t.Errorf("viridis start = #%02X%02X%02X, want #440154", to8(r), to8(gr), to8(b))
+	}
+	if _, err := BuiltinSineByName("warm-sunset"); err != nil {
+		t.Errorf("BuiltinSineByName(warm-sunset): %v", err)
+	}
+	if _, err := BuiltinSineByName("viridis"); err == nil {
+		t.Error("expected error: viridis is discrete, not sine")
+	}
+	if _, err := BuiltinDiscreteByName("no-such-palette"); err == nil {
+		t.Error("expected error for missing name")
+	}
+}
+
 func TestDefaultPath(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	p, err := DefaultPath()

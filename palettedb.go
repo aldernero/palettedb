@@ -107,6 +107,27 @@ func BuiltinNames(paletteType string) []string {
 	return names
 }
 
+// BuiltinSineByName returns the built-in sine palette with the given name
+// (case-insensitive). Unlike LoadSineByName it needs no open database.
+func BuiltinSineByName(name string) (gaul.SinePalette, error) {
+	if b, ok := builtins.ByName(name); ok {
+		if sp, ok := b.SinePalette(); ok {
+			return sp, nil
+		}
+	}
+	return gaul.SinePalette{}, fmt.Errorf("built-in sine palette %q not found", name)
+}
+
+// BuiltinDiscreteByName returns the built-in discrete palette with the given
+// name (case-insensitive) as a gaul.Gradient. Unlike LoadDiscreteByName it
+// needs no open database.
+func BuiltinDiscreteByName(name string) (gaul.Gradient, error) {
+	if b, ok := builtins.ByName(name); ok && b.Kind == "discrete" {
+		return b.Gradient(), nil
+	}
+	return gaul.Gradient{}, fmt.Errorf("built-in discrete palette %q not found", name)
+}
+
 // LoadSineByName loads a sine palette by name, searching the user's saved
 // palettes first and then the built-in palettes. Returns an error if no sine
 // palette with that name exists in either.
