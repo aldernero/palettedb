@@ -4,7 +4,7 @@ go 1.26.1
 
 require (
 	fyne.io/fyne/v2 v2.7.3
-	github.com/aldernero/gaul v0.0.0-20260712142430-f2050242ce3d
+	github.com/aldernero/gaul v0.1.0
 	golang.org/x/image v0.44.0
 	modernc.org/sqlite v1.50.1
 )
